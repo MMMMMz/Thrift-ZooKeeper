@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 /**
  * @author mazhe
@@ -37,7 +38,7 @@ public class ZooKeeperConfig {
 
     ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public static Map<String, StudentService.Client> serviceMap = new HashMap<>();
+    public static List<String> serviceList = new ArrayList<>();
 
     @PostConstruct
     private void init() {
@@ -62,29 +63,24 @@ public class ZooKeeperConfig {
         }
 
         for (String instanceName : curChildren) {
-            if (!serviceMap.containsKey(instanceName)) {
-                serviceMap.put(instanceName, createStudentService(instanceName));
+            if (!serviceList.contains(instanceName)) {
+                serviceList.add(instanceName);
             }
         }
+        System.out.println("可供选择服务:" + serviceList.stream().collect(Collectors.joining(",")));
 
         zkClient.subscribeChildChanges(servicePath, (parentPath, curChildren1) -> {
             for (String instanceName : curChildren1) {
-                if (!serviceMap.containsKey(instanceName)) {
-                    serviceMap.put(instanceName, createStudentService(instanceName));
+                if (!serviceList.contains(instanceName)) {
+                    serviceList.add(instanceName);
                 }
             }
-            for (Map.Entry<String, StudentService.Client> entry : serviceMap.entrySet()) {
-                if (!curChildren1.contains(entry.getKey())) {
-                    StudentService.Client c = serviceMap.get(entry.getKey());
-                    try {
-                        c.getInputProtocol().getTransport().close();
-                        c.getOutputProtocol().getTransport().close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    serviceMap.remove(entry.getKey());
+            for (String instanceName : serviceList) {
+                if (!curChildren1.contains(instanceName)) {
+                    serviceList.remove(instanceName);
                 }
             }
+            System.out.println(parentPath + "事件触发！");
         });
     }
 

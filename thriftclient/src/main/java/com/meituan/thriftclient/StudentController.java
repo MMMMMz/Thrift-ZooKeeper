@@ -1,5 +1,6 @@
 package com.meituan.thriftclient;
 
+import com.meituan.thriftclient.config.ThriftClient;
 import com.meituan.thriftclient.interfaces.Student;
 import com.meituan.thriftclient.provider.StudentServiceProvider;
 import org.apache.thrift.TException;
@@ -19,16 +20,33 @@ import java.util.List;
 @RestController
 public class StudentController {
     @Resource
-    StudentServiceProvider studentServiceProvider;
+    ThriftClient thriftClient;
 
     @RequestMapping("/get")
     public Student getStudentByName(String name) throws TException {
-        return studentServiceProvider.getBalanceUserService().getStudentByName(name);
+        Student student = null;
+        try{
+            thriftClient.open();
+            student = thriftClient.getService().getStudentByName(name);
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            thriftClient.close();
+        }
+
+        return student;
     }
 
     @PostMapping("/save")
     public Student save(@RequestBody Student student) throws TException {
-        studentServiceProvider.getBalanceUserService().save(student);
+        try{
+            thriftClient.open();
+            thriftClient.getService().save(student);
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            thriftClient.close();
+        }
         return student;
     }
 }
